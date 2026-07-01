@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HN Smart Inventory</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">📡</div>
+      <div><h2>HN Smart Inventory</h2><p>Telecom Stock System</p></div>
+    </div>
+    <nav class="menu">
+      <button class="menu-item active" data-section="dashboard-section">📊 Dashboard</button>
+      <button class="menu-item" data-section="stock-section">📦 Productos</button>
+      <button class="menu-item" data-section="movement-section">🔄 Movimientos</button>
+      <button class="menu-item" data-section="history-section">📜 Historial</button>
+      <button class="menu-item" data-section="labels-section">🏷️ Etiquetas QR/Barra</button>
+      <button class="menu-item" data-section="alerts-section">🔔 Alertas</button>
+    </nav>
+    <div class="sync-card"><h4>Sincronización</h4><p><span class="dot"></span> Conectado</p><small>Supabase Realtime</small></div>
+    <div class="user-card"><div class="avatar">AD</div><div><strong>Admin</strong><small>Administrador</small></div></div>
+  </aside>
+
+  <main class="main-content">
+    <header class="topbar">
+      <div><h1 id="page-title">Dashboard</h1><p id="page-subtitle">Resumen general del inventario</p></div>
+      <div class="top-actions"><button class="icon-btn" id="btn-refresh">🔄</button><button class="icon-btn" id="btn-theme">🌙</button><div class="avatar small">AD</div></div>
+    </header>
+
+    <section class="stats-grid">
+      <div class="stat-card"><span class="stat-icon blue">📦</span><div><p>Total Productos</p><h2 id="stat-total">0</h2></div></div>
+      <div class="stat-card"><span class="stat-icon green">✅</span><div><p>En Stock</p><h2 id="stat-stock">0</h2></div></div>
+      <div class="stat-card"><span class="stat-icon yellow">⚠️</span><div><p>Stock Bajo</p><h2 id="stat-low">0</h2></div></div>
+      <div class="stat-card"><span class="stat-icon red">❌</span><div><p>Sin Stock</p><h2 id="stat-empty">0</h2></div></div>
+    </section>
+
+    <section id="dashboard-section" class="content-section active">
+      <div class="dashboard-grid">
+        <div class="panel"><h2>🚀 Sistema Inteligente</h2><p>Web administrativa conectada a Supabase, preparada para app Android con escáner QR y código de barras.</p></div>
+        <div class="panel"><h2>📱 Próxima fase</h2><p>La app técnica escaneará etiquetas y registrará entradas/salidas en segundos.</p></div>
+      </div>
+    </section>
+
+    <section id="stock-section" class="content-section">
+      <div class="panel">
+        <h2 id="form-product-title">➕ Registrar Producto</h2>
+        <form id="product-form" class="form-grid">
+          <input type="hidden" id="edit-index" />
+          <div class="form-group"><label>Código único</label><input id="prod-id" placeholder="Ej: HN-ROU-000001" required /></div>
+          <div class="form-group"><label>Nombre</label><input id="prod-name" placeholder="Ej: Router Huawei" required /></div>
+          <div class="form-group"><label>Cantidad</label><input type="number" id="prod-qty" min="0" required /></div>
+          <div class="form-group"><label>Stock mínimo</label><input type="number" id="prod-min" min="0" required /></div>
+          <div class="form-group"><label>Observación</label><input id="prod-obs" placeholder="Ej: Caja completa" /></div>
+          <div class="form-actions"><button class="btn primary" id="btn-submit-product">Guardar</button><button type="button" class="btn secondary hidden" id="btn-cancel-edit">Cancelar</button></div>
+        </form>
+      </div>
+      <div class="filters-card"><input id="search-inventory" placeholder="🔍 Buscar producto, código u observación..." /><button class="btn secondary" id="btn-clear-inventory">Limpiar</button></div>
+      <div class="table-card"><table><thead><tr><th>Código barras</th><th>Producto</th><th>Cantidad</th><th>Mínimo</th><th>Estado</th><th>Observación</th><th>Acciones</th></tr></thead><tbody id="inventory-table-body"></tbody></table></div>
+    </section>
+
+    <section id="movement-section" class="content-section">
+      <div class="panel movement-panel"><h2>🔄 Registrar Entrada / Salida</h2><p>Registra movimientos con evidencia.</p>
+        <form id="movement-form" class="form-vertical">
+          <div class="form-group"><label>Tipo</label><select id="mov-type"><option value="ENTRADA">🟢 ENTRADA</option><option value="SALIDA">🔴 SALIDA</option></select></div>
+          <div class="form-group"><label>Producto</label><select id="mov-product" required></select></div>
+          <div class="form-group"><label>Cantidad</label><input type="number" id="mov-qty" value="1" min="1" required /></div>
+          <div class="form-group"><label>Técnico</label><select id="mov-technician"><option>Jeyson</option><option>Diego</option><option>Oficina / Stock</option></select></div>
+          <div class="form-group"><label>Observación</label><input id="mov-obs" /></div>
+          <div class="form-group"><label>📷 Foto evidencia</label><input type="file" id="mov-photo" accept="image/*" /><div id="photo-preview-container" class="photo-preview hidden"><img id="photo-preview" /></div></div>
+          <button class="btn success">Confirmar Movimiento</button>
+        </form>
+      </div>
+    </section>
+
+    <section id="history-section" class="content-section">
+      <div class="filters-card"><input id="filter-search" placeholder="🔍 Buscar producto o técnico..." /><select id="filter-type"><option value="TODOS">Todos</option><option value="ENTRADA">Entradas</option><option value="SALIDA">Salidas</option></select><input type="date" id="filter-date" /><button class="btn excel" id="btn-excel">Exportar Excel</button><button class="btn secondary" onclick="window.print()">Imprimir</button></div>
+      <div id="edit-history-section" class="panel hidden"><h2>✏️ Editar registro</h2><form id="edit-history-form" class="form-vertical"><input type="hidden" id="edit-history-index" /><div class="form-group"><label>Tipo</label><select id="edit-history-type"><option value="ENTRADA">ENTRADA</option><option value="SALIDA">SALIDA</option></select></div><div class="form-group"><label>Cantidad</label><input type="number" id="edit-history-qty" min="1" /></div><div class="form-group"><label>Técnico</label><select id="edit-history-tech"><option>Jeyson</option><option>Diego</option><option>Oficina / Stock</option></select></div><div class="form-group"><label>Observación</label><input id="edit-history-obs" /></div><div class="form-actions"><button class="btn primary">Actualizar</button><button type="button" class="btn secondary" id="btn-close-history-edit">Cancelar</button></div></form></div>
+      <div class="table-card"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Producto</th><th>Cantidad</th><th>Técnico</th><th>Obs</th><th>Foto</th><th>Acción</th></tr></thead><tbody id="movements-table-body"></tbody></table></div>
+    </section>
+
+    <section id="labels-section" class="content-section">
+      <div class="panel">
+        <h2>🏷️ Etiquetas QR + Código de Barras</h2>
+        <p>Todos los productos registrados generan automáticamente su etiqueta. El QR y el código de barras usan el mismo código único del inventario para que la app pueda escanearlo y buscarlo en Supabase.</p>
+        <div class="form-actions label-actions">
+          <button class="btn secondary" id="btn-print-label">Imprimir etiquetas</button>
+        </div>
+      </div>
+
+      <div class="label-preview">
+        <div id="labels-grid" class="labels-grid"></div>
+      </div>
+    </section>
+
+    <section id="alerts-section" class="content-section"><div class="panel"><h2>🔔 Alertas</h2><p>Productos con stock bajo o agotado.</p></div><div class="table-card"><table><thead><tr><th>Producto</th><th>Cantidad</th><th>Mínimo</th><th>Estado</th></tr></thead><tbody id="alerts-table-body"></tbody></table></div></section>
+  </main>
+  <script type="module" src="assets/js/app.js"></script>
+</body>
+</html>
